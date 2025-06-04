@@ -343,28 +343,6 @@ find_uio_number(const struct osdPCIDevice* osd)
     return -1;
 }
 
-static int reopen_uio(struct osdPCIDevice *osd)
-{
-    int uio = find_uio_number(osd);
-    if (uio < 0)
-        return -1;
-
-    char *devname = allocPrintf("/dev/uio%u", uio);
-    if (!devname)
-        return -1;
-
-    int newfd = open(devname, O_RDWR);
-    free(devname);
-    if (newfd < 0)
-        return -1;
-
-    if (osd->fd != -1)
-        close(osd->fd);
-
-    osd->fd = newfd;
-    return 0;
-}
-
 static
 int
 open_uio(struct osdPCIDevice* osd)
@@ -942,6 +920,44 @@ error:
     epicsEventDestroy(isr->done);
     free(isr);
     return ret;
+}
+
+static int reopen_uio(struct osdPCIDevice *osd)
+{
+    int uio = find_uio_number(osd);
+    if (uio < 0)
+        return -1;
+
+    char *devname = allocPrintf("/dev/uio%u", uio);
+    if (!devname)
+        return -1;
+
+    int newfd = open(devname, O_RDWR);
+    free(devname);
+    if (newfd < 0)
+        return -1;
+
+    if (osd->fd != -1)
+        close(osd->fd);
+
+    osd->fd = newfd;
+
+    // MMIO re-map for each BAR
+    int bar;
+    for (bar = 0; bar < PCIBARCOUNT; ++bar) {
+        if (osd->len[bar]) {
+            osd->base[bar] = NULL; // force remap
+            volatile void *tmp = NULL;
+            linuxDevPCIToLocalAddr(&osd->dev, bar, &tmp, 0);
+            if (!tmp) {
+                fprintf(stderr, "reopen_uio: BAR %d remap failed\n", bar);
+            } else {
+                fprintf(stderr, "reopen_uio: BAR %d remapped at %p\n", bar, tmp);
+            }
+        }
+    }
+
+    return 0;
 }
 
 static
