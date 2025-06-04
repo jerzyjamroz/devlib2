@@ -996,6 +996,12 @@ void isrThread(void* arg)
                 epicsMutexMustLock(osd->devLock);
                 if (reopen_uio(osd) == 0) {
                     errlogPrintf("isrThread '%s': Successfully reopened UIO device\n", name);
+                    epicsInt32 irq_on = 1;
+                    if (write(osd->fd, &irq_on, sizeof(irq_on)) < 0) {
+                        errlogPrintf("isrThread '%s': Failed to re-enable IRQs after reopen: %s\n", name, strerror(errno));
+                    } else {
+                        errlogPrintf("isrThread '%s': IRQ re-enabled after UIO recovery\n", name);
+                    }
                 } else {
                     errlogPrintf("isrThread '%s': UIO reopen failed. Will retry in 1 second.\n", name);
                     epicsMutexUnlock(osd->devLock);
