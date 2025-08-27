@@ -8,10 +8,10 @@ clone_depth: 50
 
 skip_commits:
   files:
-    - 'documentation/*'
-    - '**/*.html'
-    - '**/*.md'
-    - '.travis.yml'
+    - "documentation/*"
+    - "**/*.html"
+    - "**/*.md"
+    - ".travis.yml"
 
 # Build Configurations: dll/static, regular/debug
 configuration:
@@ -25,15 +25,17 @@ environment:
   SETUP_PATH: .ci-local
 
   matrix:
-  - CMP: vs2019
-    BASE: 7.0
-    APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+    - CMP: vs2019
+      BASE: 7.0
+      APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
 
 # Platform: processor architecture
 platform:
   - x64
 
 install:
+  - cmd: where python
+  - cmd: python --version
   - cmd: git submodule update --init --recursive
 
 build_script:
